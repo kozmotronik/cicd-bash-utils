@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# Bulunduğu konumdan yukarı/geriye doğru arama yapar.
+# -dflh Seçenekleri ile arama bilgilerini alır.
+# -d Seçeneği dizin aramak için kullanılır: tersara -d <dizin adı>.
+# -f Seçeneği dosya aramak için kullanılır: tersara -f <dosya adı>.
+# -l Seçeneği geriye doğru aramanın en fazla kaç düzey geriye yapılacağını
+#   belirler. Bu seçenek verilmezse arama kök dizinine kadar sürer.
+#   Düzey değeri kök dizinini aşacak kadar büyükse arama kök dizinde durur.
+#   Kullanımı: tersara -f <dosya adı> -l <düzey>
+# Dosya bulunursa tam yolu çıktılanır bulunmazsa hiçbir şey çıktılanmaz.
+
+while getopts 'd:f:l:h' opt; do
+    case "$opt" in
+        d)
+            tip=d
+            aranan=$OPTARG
+#             echo $aranan dizini aranacak
+            ;;
+        f)
+            tip=f
+            aranan=$OPTARG
+#             echo $aranan dosyası aranacak
+            ;;
+        l)
+            duzey=$OPTARG
+#             echo $duzey düzey geriye doğru aranacak
+            ;;
+        h)
+            echo "Kullanım: $(basename $0) [-d <dizin adı>] veya [-f <dosya adı>], [-l <düzey>], [-h] (bu çıktıyı verir)"
+            exit
+            ;;
+    esac
+done
+shift "$(($OPTIND - 1))"
+
+
+# echo $BASH_SOURCE $aranan $tip $duzey
+
+if [ -z $aranan ]; then
+    echo Dosya adı verilmemiş işlem iptal ediliyor.
+    exit 1
+fi
+
+if [ -z $duzey ]; then
+#     echo Düzey sayısı verilmemiş, kök dizinine dek aranacak.
+    while [ -z $konum ] && [ $PWD != "/" ]; do
+        konum=$(find $PWD -name $aranan -type $tip)
+        cd ..
+    done
+else
+    sayar=0
+    while [ -z $konum ] && [[ $sayar < $duzey && $PWD != "/" ]]; do
+        konum=$(find $PWD -name $aranan -type $tip)
+        cd ..
+        let sayar++
+    done
+fi
+echo $konum

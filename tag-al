@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# Geliştiriciden main dalına birleştirme sonrası otomatik etiketleme
+# için kullanıcıdan etiket bilgilerini (sürüm no ve mesaj) almak için
+# kullanılır.
+# Sürüm ve düzeltme dalları main/master dalına birleştirildikten sonra,
+# genellikle post-merge kancası tarafından gerek görülünce çağrılır.
+
+echo "Sürüm numarasını giriniz (zorunlu)."
+echo "Format: vX.Y.Z, X: Major, Y: Minor, Z: Yama."
+read SURUM
+echo "Sürüm mesajını giriniz (zorunlu, tek satır)"
+read MSG
+
+echo $SURUM $MSG
+echo $SURUM > tag
+echo $MSG >> tag
