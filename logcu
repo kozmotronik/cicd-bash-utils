@@ -1,0 +1,5 @@
+#!/bin/bash
+logDosyasi="$1"
+exec 3>&1 1>"$logDosyasi" 2>&1
+trap "echo 'HATA: Çalışma sırasında bir hata oluştu, ayrıntılar için $logDosyasi log dosyasına bakınız.' >&3" ERR
+trap '{ set +x; } 2>/dev/null; echo -n "[$(date -Is)]  "; set -x' DEBUG
