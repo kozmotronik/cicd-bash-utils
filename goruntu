@@ -1,0 +1,240 @@
+#!/bin/bash
+#
+################################################################################
+#
+# Tarih: 15.12.2022
+# Yazan: İsmail Sahillioğlu
+#
+# Git kancaları (hooks) ile birlikte çalışan, proje dizini görüntüsü (snapshot) 
+# alma aracı.
+# 
+# Dizinleri geriye doğru arama şimdilik desteklenmediğinden bu betiğin en üst 
+# düzeydeki dizin ile aynı konumda olması gerekir. Yani yedekleme dizini proje
+# dizininden daha üst düzeydeyse yedekleme ile aynı konumda, veya proje dizini
+# daha üst düzeydeyse proje dizini ile aynı konumda olmalıdır.
+# 
+# Zorunlu olmamakla birlikte bir tane parametre alması beklenir. Bu parametre
+# bu betiğin, hangi kancanın kendisini çağırdığını bilmesi ve gereken ilgili
+# kipte çalışması içindir.
+# 
+# Bu betik 3 kipte çalışıp çıktı üretebilir. Kipler şöyledir:
+# 
+# tarih: Betik hiç parametre almadığında bu kipte çalışır.
+# Görüntü adlandırması için yalnızca tarih damgası ve 8 haneli git referansı
+# kullanılır. Adlandırma biçimi aşağıdaki gibidir:
+# Repo henüz yoksa veya repoda henüz bir teslimat yoksa:
+# [urtotm_projeAdi]-[TARIH_DAMGASI]
+# Repo var ve repoda teslimat varsa:
+# [urtotm_projeAdi]-[TARIH_DAMGASI]-[gitRef]
+# 
+# ref: Betik post-commit kancası tarafından çağrılınca bu kipte çalışır.
+# Manuel kipinin çalışmasıyla aynıdır. Adlandırma biçimi aşağıdaki gibidir:
+# [urtotm_projeAdi]-[TARIH_DAMGASI]-[gitRef]
+# 
+# tag: Betik post-merge kancası tarafından çalıştırılırsa bu kipte çalışır.
+# Görüntü adlandırması için tarih damgası, sürüm numarası ve 8 haneli git
+# referansı kullanılır. Adlandırma biçimi aşağıdaki gibidir:
+# [urtotm_projeAdi]-[TARIH_DAMGASI]-[gitTag]-[gitRef]
+# 
+# parametre $1: Bu betiği çağıran kancanın adı.
+# Bu parametre boş veya geçersiz bir değer ile gelirse betiğin manuel olarak
+# çalıştırıldığı varsayılır.
+# 
+# Yedekler aşağıdaki dizin yapısı kullanılarak saklanır:
+# $urtotm_yedekDizini
+#   |--s[MAJOR_SURUM_NO]
+#       |--[TAM_SURUM_NO] (Başında v olmadan, yani vX.X.X yerine X.X.X)
+# 
+# urtotm_projeDizini: Proje dizininin yoludur. Çevre değişkenleri dosyasında tanımlanmıştır.
+# urtotm_yedekDizini: Yedeklerin saklanacağı ana dizinin yoludur.
+################################################################################
+source etkilesim
+
+log() {
+    if [[ -f "$urtotm_projeLogDosyasi" ]]; then
+        echo "$1" >> "$urtotm_projeLogDosyasi"
+    else
+        echo "$1"
+    fi
+}
+
+goruntuBaslik="$dialogBaslik - Görüntü"
+log
+log "Kaynak $urtotm_projeDizini, hedef $urtotm_yedekDizini"
+
+if [ ! -d "$urtotm_projeDizini" ]; then
+    log "Böyle bir dizin bulunmuyor: $urtotm_projeDizini! İşlem iptal edildi."
+    exit 1
+fi
+
+if [ ! -d "$urtotm_yedekDizini" ]; then
+    log "Böyle bir dizin bulunmuyor: $urtotm_yedekDizini! İşlem iptal edildi."
+    exit 1
+fi
+
+
+if [ -z "$1" ]; then
+    log "Kanca parametresi verilmemiş, görüntü yalnızca commit referansı ile kaydedilecek."
+    kip=ref
+else
+    log "Çağıran kanca $1."
+    # Commit ise yalnızca refens ile merge ise tag+ref ile adlandır
+    if [ "$1" == "post-merge" ]; then
+        kip=tag
+    elif [ "$1" == "post-commit" ]; then
+        kip=ref
+    else
+        kip=tarih
+    fi
+fi
+log "Kip: $kip"
+
+
+# Her şey tamam gibi, işleme başlayabiliriz
+log $"Her şey tamam. Yedekleme başladı. $(date)"$'\n'
+
+# git dizinini bulma işlemini otomatik olarak yap
+# İç içe git repolarına sahip projelerde sorun yaratabilir.
+gitDizini=$(find "$urtotm_projeDizini" -name .git -type d | head -1) # Yalnızca bir reposu olan projeler için
+if [ -n "$gitDizini" ]; then
+#     gitDizini="${gitDizini%.git}" # .git dizinini yoldan çıkar
+    log "Projenin sürüm bilgileri ${gitDizini%/.git} dizininde taranıyor"
+#     pushd "$gitDizini" # proje dizinine gir
+    gitRef=$(GIT_DIR="$gitDizini" git rev-parse --short HEAD) # Son commit numarasını al
+    gitTag=$(GIT_DIR="$gitDizini" git tag -l --sort=-creatordate | head -1) # Son sürüm numarasını al
+    log "Son sürüm no $gitTag, commit no $gitRef"
+#     popd # Proje dizinini barındıran çalışma dizine geri dön
+else
+    log "$urtotm_projeDizini içerisinde bir git reposu bulunamadı"
+    kip=tarih # bir git reposu yoksa tarih kipine geç
+fi
+
+# Proje dizinini önce çoğalt
+surevDamgasi=$(date +"%Y%m%d_%H%M%S")
+
+# Görüntü yedeği dizininin adını oluştur
+if [ $kip = "tarih" ]; then
+# Git etkin değilse yalnızca zaman damgasını kullan
+    goruntuDiziniAdi="$urtotm_projeAdi-$surevDamgasi"
+elif [ $kip = "ref" ]; then
+    goruntuDiziniAdi="$urtotm_projeAdi-$gitRef-$surevDamgasi"
+else
+# Git etkinse adın sonuna sürüm + commit numarasını ekle
+    goruntuDiziniAdi="$urtotm_projeAdi-$gitTag-$gitRef-$surevDamgasi"
+fi
+
+log "Görüntü adı: $goruntuDiziniAdi"
+log "Hedef dizin: $urtotm_yedekDizini"
+
+# Hedef dizini içerisinde kapsayıcı major dizin ve/veya tam sürüm dizini yoksa oluştur
+# Sürüm formatının vX.X.X olduğu varsayılır.
+surumMajor=${gitTag%%.*} # Major sürüm numarasını al
+surumMajor=${surumMajor//[^0-9]/} # Varsa sayısal olmayan tüm önekleri kaldır
+if [ -z "$surumMajor" ]; then
+# Henüz bir tag yok, 0 ile başla
+    surumMajor=0
+fi
+surum=${gitTag//v} # Major sürüm numarasını al syntax ${string:index:length}
+if [ -z "$surum" ]; then
+# Henüz bir tag yok, 0 ile başla
+    surum=0.0.0
+fi
+hedef="$urtotm_yedekDizini" # ATTENTION urtotm_yedekDizini bir çevre değişkenidir ve değiştirilmemelidir!
+surumMajorDizinAdi="s$surumMajor"
+surumMajorDizini=$(find "$hedef" -name "$surumMajorDizinAdi" -type d)
+if [ -z "$surumMajorDizini" ]; then
+# Major sürüm dizini yoksa, sürüm dizini de yoktur, herikisini yarat
+    log "$surumMajorDizinAdi major sürümü için yeni bir dizin yaratılıyor..."
+    hedef+="/$surumMajorDizinAdi" # Önce major sürüm dizinini yarat
+    if ! mkdir "$hedef"; then
+        log "$hedef dizini oluşturulamadı, işlem iptal edildi."
+        exit 1
+    fi
+    hedef+="/$surum" # Sonra sürüm dizinini yarat
+    if ! mkdir "$hedef"; then
+        log "$hedef dizini oluşturulamadı, işlem iptal edildi."
+        exit 1
+    fi
+else
+# Major sürüm dizini var, burada sürüm dizinini ara
+    log "Major sürüm dizini bulundu: $surumMajorDizini"
+    hedef=$surumMajorDizini
+    surumDizini=$(find "$surumMajorDizini" -name "$surum" -type d)
+    if [ -z "$surumDizini" ]; then
+    # Sürüm dizni yok gibi, oluştur
+        log "$surum sürümü için yeni bir dizin yaratılıyor..."
+        hedef+="/$surum"
+        if ! mkdir "$hedef"; then
+            log "$hedef dizini oluşturulamadı, işlem iptal edildi."
+            exit 1
+        fi
+    else
+        log "Sürüm dizini bulundu: $surumDizini"
+        hedef=$surumDizini
+    fi
+fi
+log "Hedef dizin: $hedef"
+
+# dislama dosyası eklenmemişse, rsync nin 11 hatası vermemesi için
+# boş bir tane oluştur
+if [[ ! -e "$urtotm_projeUrtotmDizini/dislama" ]]; then
+    touch "$urtotm_projeUrtotmDizini/dislama"
+fi
+
+hedefGoruntuDizini="${hedef}/${goruntuDiziniAdi}"
+# Görüntüyü hedefte oluştur
+# -a: -rlptgoD bayraklarının hepsine eşdeğerdir. Bu, yineleme (recursion) 
+# yapmasını ve neredeyse her şeyi (nitelikler) korumasını istediğimizi 
+# söylemenin hızlı bir yoludur.
+# 
+# --exclude-from: Bu seçenek bu scriptin çalıştığı dizinde, dışlanacak dosya 
+# veya dizin listesini içeren ".dislama" adında bir dosyaya bakar. Bu dosya 
+# içinde listelenenler yedeklemeden hariç tutulur, yani yedekleme hedefine 
+# kopyalanmaz.
+# 
+# mkdir ile ayrıca goruntuDiziniAdi dizinini hedefte oluşturmaya gerek yok 
+# çünkü rsync zaten otomatik olarak oluşturuyor.
+# Yalnızca proje içeriğinin hedef ile kaynak arasında kopyalanması için heriki 
+# konumun sonuna '/' ekliyoruz.
+if [ -e "$urtotm_projeLogDizini" ]; then
+    # lof dosyasının yolunu al
+    rsynclog="${urtotm_projeLogDizini}/goruntu-rsync-$(date +"%Y%m%d%H%M%S")"
+    touch "$rsynclog" # rsync için log dosyasını yarat
+    rsync -aq --log-file="$rsynclog" \
+        --exclude-from="${urtotm_projeUrtotmDizini}/dislama" "$urtotm_projeDizini/" "$hedefGoruntuDizini/"
+else
+    rsync -aq --exclude-from="${urtotm_projeUrtotmDizini}/dislama" "$urtotm_projeDizini/" "$hedefGoruntuDizini/"
+fi
+dk=$?
+if [[ $dk -ne 0 ]]; then
+    log "rsync $dk kodu ile çıkış yaptı, işlem iptal ediliyor..."
+    exit 1
+fi
+
+projeGoruntuArsivi="${hedefGoruntuDizini}.zip"
+# Kopyaladıktan sonra kayıt dizinine geç ve orada ziple
+# Görüntü dizininin bulunduğu hedef sürüm dizinini yığına it; PWD=$hedef
+pushd "$hedef"
+# Görüntü yedeğini zip olarak arşivle
+# zip -[SEÇENEKLER] <ARŞİV_YOLU/ARŞİV_ADI> <DİZİN_YOLU/DİZİN_ADI>
+# -q (quiet): Zip komutunun çıktılarını gösterme
+# -m (move into archive): Zipledikten sonra dizini sil; dizin arşive taşınır
+# -r (recursive): Dizin içerisindeki her şeyi arşive ekle
+if ! zip -qmr "${projeGoruntuArsivi##*/}" "${hedefGoruntuDizini##*/}"; then
+    mesajGoster hata "$goruntuBaslik" "İlgilenmeniz gerekiyor: \
+        $goruntuDiziniAdi arşivlenirken bir şeyler ters gitti." &
+fi
+popd
+
+# Diğer üretim otomasyonu betiklerine görünür yap
+# Değişken buradan export yapılarak parent kabuklara görünür yapılamaz. Bu yüzden ortam 
+# değişkenlerinin tanımlandığı dosyada export edilir. Bu işlemden sonra, bu değişkenin 
+# parent ve child, tüm betiklere görünür olması için bu betiği çağıran parent tarafından 
+# 'urtotm_projeUrtotmEnv' yeniden source edilmelidir.
+echo "urtotm_projeUrtotmEnv yolu: $urtotm_projeUrtotmEnv"
+echo "export projeGoruntuArsivi=$projeGoruntuArsivi" >> "$urtotm_projeUrtotmEnv"
+
+msgBasarili="Görüntü yedeği alma işlemi başarıyla tamamlandı."
+log "$msgBasarili"
+log "$goruntuDiziniAdi"
+bildirimGoster "$goruntuBaslik" "${msgBasarili}\n${goruntuDiziniAdi}" &

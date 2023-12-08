@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# Etkileşim testleri
+# Çevre değişkenleri
+export PATH+=:/disk/Projeler/UretimOtomasyonu/Bash/UretimOtomasyonu/araclar
+
+source etkilesim
+
+
+# mesajGoster bilgi "Bilgi Başlığı" "Bilgi mesajı."
+# mesajGoster bilgi "Üretim Otomasyonu" "Gereken tüm uygulamalar sistemde yüklü. Üretim Otomasyonu şimdi kurulacak."
+# secenekGoster "Seçenek Başlığı" "Seçenek açıklaması" "11 22 33 44 55 66 77"
+# dizinSec "Bir dizin seç"
+# girdiAl "Bilgi gir" "1.satır\n2.satır\n3.satır"
+# evetHayirGoster "Dosyaları Sil" "Dosyalar silinsin mi?" || echo "Yanıt hayır"
+yaziGoster "/disk/Projeler/UretimOtomasyonu/Bash/logs/rsync-log-20231207174858"
