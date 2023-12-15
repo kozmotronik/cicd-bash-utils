@@ -1,0 +1,4 @@
+# Test dosyaları haricindekileri görmezden gel
+/*
+!.gitignore
+!test-*
