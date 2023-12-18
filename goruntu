@@ -95,7 +95,13 @@ log $"Her şey tamam. Yedekleme başladı. $(date)"$'\n'
 
 # git dizinini bulma işlemini otomatik olarak yap
 # İç içe git repolarına sahip projelerde sorun yaratabilir.
-gitDizini=$(find "$urtotm_projeDizini" -name .git -type d | head -1) # Yalnızca bir reposu olan projeler için
+# find komutu bulunan dizinleri listelemeye en alt dizinlerden başlıyor gibi. Bu yüzden hedefin 
+# alt dizinlerinde başka repolar varsa önce alt dizindeki repoların hooks dizinlerini listeler.
+# Biz burada projenin kendi git reposu ile ilgilendiğimiz için yalnızca projenin reposunun
+# hooks dizinini alacağız. Birden fazla repo olması durumunda projenin reposu en altta olacağı
+# için tail -1 komutuya en sondan birinci çıktıyı alacağız. tail komutu yalnızca bir repo olduğu
+# durumda da sorun yaratmayacaktır.
+gitDizini=$(find "$urtotm_projeDizini" -name .git -type d | tail -1) # Yalnızca bir reposu olan projeler için
 if [ -n "$gitDizini" ]; then
 #     gitDizini="${gitDizini%.git}" # .git dizinini yoldan çıkar
     log "Projenin sürüm bilgileri ${gitDizini%/.git} dizininde taranıyor"
@@ -230,9 +236,9 @@ popd
 # Değişken buradan export yapılarak parent kabuklara görünür yapılamaz. Bu yüzden ortam 
 # değişkenlerinin tanımlandığı dosyada export edilir. Bu işlemden sonra, bu değişkenin 
 # parent ve child, tüm betiklere görünür olması için bu betiği çağıran parent tarafından 
-# 'urtotm_projeUrtotmEnv' yeniden source edilmelidir.
-echo "urtotm_projeUrtotmEnv yolu: $urtotm_projeUrtotmEnv"
-echo "export projeGoruntuArsivi=$projeGoruntuArsivi" >> "$urtotm_projeUrtotmEnv"
+# 'urtotm_projeUrtotmenv' yeniden source edilmelidir.
+echo "urtotm_projeUrtotmenv yolu: $urtotm_projeUrtotmenv"
+echo "export projeGoruntuArsivi=$projeGoruntuArsivi" >> "$urtotm_projeUrtotmenv"
 
 msgBasarili="Görüntü yedeği alma işlemi başarıyla tamamlandı."
 log "$msgBasarili"

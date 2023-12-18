@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+# $1: Yeni sürümü çıkan urtotm platformunun enson sürüm dizini
+# $2+: Güncellenecek hedeflerin urtotmenv dosyaları
+
+source etkilesim
+guncelleBaslik="$urtotm_projeAdi - Güncelle"
+
+urtotmEnson="$1"
+declare -a urtotmenvler # urtotmenv dosyalarını tutacak dizi
+
+if [[ ! -e "$urtotmEnson" && ! -d "$urtotmEnson" ]]; then
+    mesajGoster hata "$guncelleBaslik" "urtotm Güncelleme Başarısız!\nGeçersiz bir enson sürüm proje dizini: ["$urtotmEnson"]" &
+    exit 1
+fi
+
+if [[ $# -lt 2 ]]; then
+    mesajGoster hata "$guncelleBaslik" "urtotm Güncelleme Başarısız!\nHiç urtotmenv dosyası verilmemiş" &
+    exit 1
+fi
+
+shift # İlk konumsal parametreyi aldıktan sonra shift ile bir sonraki parametreyi $1 konumuna kaydır
+while (( $# )); do
+    urtotmenv="$1"
+    echo "Kalan: $#, Sıradaki hedef: $urtotmenv"
+    # Varlık ve dosya kontrolü
+    if [[ ! -e "$urtotmenv" || ! -f "$urtotmenv" ]]; then
+        echo "Geçersiz bir urtotmenv dosyası: ["$urtotmenv"]"
+        shift; continue
+    fi
+    shift; continue
+
+    # İlgili urtotm platform projesi git-hooks dizini barındırıyorsa hedefin git kancalarını güncelle
+    if [[ -e "${urtotmEnson}/git-hooks" ]]; then
+        # xargs ile çift tırnakları at
+        urtotm_projeGitDizini="$(awk -F'=' '/.*GitDizini/ { print $2 }' "$urtotmenv" | xargs)"
+        gitKancalariDizini="${urtotm_projeGitDizini}/hooks"
+        echo "Hedef git kancaları dizini: $gitKancalariDizini"
+        if [[ ! -e "$gitKancalariDizini" || ! -d "$gitKancalariDizini" ]]; then
+            echo "urtotm Güncelleme Başarısız! Güncellenecek hedefin git kancaları dizini bulunamadı."
+            shift; continue
+        fi
+
+        # Ardından dosyalari rsync ile yerlerine kopyala
+        guncellenirkenHata="güncellenirken bir hata oluştu: rsync kod"
+        rsync -qa "${urtotmEnson}/git-hooks/" "${gitKancalariDizini}/"
+        if [ ! $? ]; then
+            echo "Git kancaları $guncellenirkenHata"
+            shift; continue
+        fi
+    fi
+
+    hedefUrtotmDizini=$(awk -F'=' '/.*UrtotmDizini/ { print $2 }' "$urtotmenv" | xargs)
+    echo "Hedef urtotm dizini: $hedefUrtotmDizini"
+    if [[ ! -e "$hedefUrtotmDizini" || ! -d "$hedefUrtotmDizini" ]]; then
+        echo "urtotm Güncelleme Başarısız! Güncellenecek hedefin git kancaları dizini bulunamadı."
+        shift; continue
+    fi
+    rsync -qa --delete --exclude=git-hooks "${urtotmEnson}/" "${uretimOtomasyonuDizini}/"
+    if [ ! $? ]; then
+        echo "Üretim otomasyonu dizini (.urtotm) $guncellenirkenHata"
+        shift; continue
+    fi
+
+    # Kancalara üretim otomasyonu config (urtotmenv) dosyasını source etme ifadesi ekle.
+    # Bu ifadeler dinamik olarak eklendiğinden, güncellemeden sonra yeniden eklenmelidir.
+    pushd "$gitKancalariDizini"
+    while read -r kanca; do
+        # source etkilesim ifadesinden önceki satıra ekle
+        sed -i -e "/^source etkilesim/ i\source \"${urtotmenv}\"\\" \
+            -e 'export urtotm_projeLogDosyasi="${urtotm_projeLogDizini}/${urtotm_projeLogDosyaOneki}-$(date +"%Y%m%d_%H%M%S")"\' \
+            -e 'source logcu "$urtotm_projeLogDosyasi"' "$kanca"
+    done < <(ls -I "*.sample")
+    popd
+    shift # Bir sonraki argümanı (varsa) $1 konumuna getir
+done
+
+mesajGoster bilgi "$guncelleBaslik" "Üretim otomasyonu $urtotm_platform platformunun yeni sürümü\ngüncelleme listesindeki hedef projelere yüklendi." &
