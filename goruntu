@@ -236,9 +236,9 @@ popd
 # Değişken buradan export yapılarak parent kabuklara görünür yapılamaz. Bu yüzden ortam 
 # değişkenlerinin tanımlandığı dosyada export edilir. Bu işlemden sonra, bu değişkenin 
 # parent ve child, tüm betiklere görünür olması için bu betiği çağıran parent tarafından 
-# 'urtotm_projeUrtotmEnv' yeniden source edilmelidir.
-echo "urtotm_projeUrtotmEnv yolu: $urtotm_projeUrtotmEnv"
-echo "export projeGoruntuArsivi=$projeGoruntuArsivi" >> "$urtotm_projeUrtotmEnv"
+# 'urtotm_projeUrtotmenv' yeniden source edilmelidir.
+echo "urtotm_projeUrtotmenv yolu: $urtotm_projeUrtotmenv"
+echo "export projeGoruntuArsivi=$projeGoruntuArsivi" >> "$urtotm_projeUrtotmenv"
 
 msgBasarili="Görüntü yedeği alma işlemi başarıyla tamamlandı."
 log "$msgBasarili"
