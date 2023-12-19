@@ -52,10 +52,10 @@ while (( $# )); do
     hedefUrtotmDizini=$(awk -F'=' '/.*UrtotmDizini/ { print $2 }' "$urtotmenv" | xargs)
     echo "Hedef urtotm dizini: $hedefUrtotmDizini"
     if [[ ! -e "$hedefUrtotmDizini" || ! -d "$hedefUrtotmDizini" ]]; then
-        echo "urtotm Güncelleme Başarısız! Güncellenecek hedefin git kancaları dizini bulunamadı."
+        echo "urtotm Güncelleme Başarısız! Güncellenecek hedefin '.urtotm' dizini bulunamadı."
         shift; continue
     fi
-    rsync -qa --delete --exclude=git-hooks "${urtotmEnson}/" "${uretimOtomasyonuDizini}/"
+    rsync -qa --delete --exclude=git-hooks "${urtotmEnson}/" "${hedefUrtotmDizini}/"
     if [ ! $? ]; then
         echo "Üretim otomasyonu dizini (.urtotm) $guncellenirkenHata"
         shift; continue
