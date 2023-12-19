@@ -28,7 +28,6 @@ while (( $# )); do
         echo "Geçersiz bir urtotmenv dosyası: ["$urtotmenv"]"
         shift; continue
     fi
-    shift; continue
 
     # İlgili urtotm platform projesi git-hooks dizini barındırıyorsa hedefin git kancalarını güncelle
     if [[ -e "${urtotmEnson}/git-hooks" ]]; then
