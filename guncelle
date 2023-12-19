@@ -68,7 +68,7 @@ while (( $# )); do
         echo "urtotm Güncelleme Başarısız! Güncellenecek hedefin '.urtotm' dizini bulunamadı."
         shift; continue
     fi
-    rsync -qa --delete --exclude=git-hooks "${urtotmEnson}/" "${hedefUrtotmDizini}/"
+    rsync -qa --exclude=git-hooks "${urtotmEnson}/" "${hedefUrtotmDizini}/"
     if [ ! $? ]; then
         echo "Üretim otomasyonu dizini (.urtotm) $guncellenirkenHataRsyncKod: $?"
         shift; continue
