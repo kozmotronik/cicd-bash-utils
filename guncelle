@@ -29,24 +29,37 @@ while (( $# )); do
         shift; continue
     fi
 
+    guncellenirkenHataRsyncKod="güncellenirken bir hata oluştu: rsync kod"
     # İlgili urtotm platform projesi git-hooks dizini barındırıyorsa hedefin git kancalarını güncelle
-    if [[ -e "${urtotmEnson}/git-hooks" ]]; then
+    urtotmEnsonGitHooksDizini="$(find "$urtotmEnson" -type d -name git-hooks)"
+    if [[ -n "$urtotmEnsonGitHooksDizini" ]]; then
         # xargs ile çift tırnakları at
-        urtotm_projeGitDizini="$(awk -F'=' '/.*GitDizini/ { print $2 }' "$urtotmenv" | xargs)"
-        gitKancalariDizini="${urtotm_projeGitDizini}/hooks"
-        echo "Hedef git kancaları dizini: $gitKancalariDizini"
-        if [[ ! -e "$gitKancalariDizini" || ! -d "$gitKancalariDizini" ]]; then
+        guncellenecekProjeGitDizini="$(awk -F'=' '/.*GitDizini/ { print $2 }' "$urtotmenv" | xargs)"
+        guncellenecekProjeGitHooksDizini="${guncellenecekProjeGitDizini}/hooks"
+        echo "urtotm enson sürüm git kancaları dizini: $urtotmEnsonGitHooksDizini"
+        echo "Hedef git kancaları dizini: $guncellenecekProjeGitHooksDizini"
+        if [[ ! -e "$guncellenecekProjeGitHooksDizini" || ! -d "$guncellenecekProjeGitHooksDizini" ]]; then
             echo "urtotm Güncelleme Başarısız! Güncellenecek hedefin git kancaları dizini bulunamadı."
             shift; continue
         fi
 
         # Ardından dosyalari rsync ile yerlerine kopyala
-        guncellenirkenHata="güncellenirken bir hata oluştu: rsync kod"
-        rsync -qa "${urtotmEnson}/git-hooks/" "${gitKancalariDizini}/"
+        rsync -qa "${urtotmEnsonGitHooksDizini}/" "${guncellenecekProjeGitHooksDizini}/"
         if [ ! $? ]; then
-            echo "Git kancaları $guncellenirkenHata"
+            echo "Git kancaları $guncellenirkenHataRsyncKod: $?"
             shift; continue
         fi
+
+        # Kancalara üretim otomasyonu config (urtotmenv) dosyasını source etme ifadesi ekle.
+        # Bu ifadeler dinamik olarak eklendiğinden, güncellemeden sonra yeniden eklenmelidir.
+        pushd "$guncellenecekProjeGitHooksDizini"
+        while read -r kanca; do
+            # source etkilesim ifadesinden önceki satıra ekle
+            sed -i -e "/^source etkilesim/ i\source \"${urtotmenv}\"\\" \
+                -e 'export urtotm_projeLogDosyasi="${urtotm_projeLogDizini}/${urtotm_projeLogDosyaOneki}-$(date +"%Y%m%d_%H%M%S")"\' \
+                -e 'source logcu "$urtotm_projeLogDosyasi"' "$kanca"
+        done < <(ls -I "*.sample")
+        popd
     fi
 
     hedefUrtotmDizini=$(awk -F'=' '/.*UrtotmDizini/ { print $2 }' "$urtotmenv" | xargs)
@@ -57,20 +70,9 @@ while (( $# )); do
     fi
     rsync -qa --delete --exclude=git-hooks "${urtotmEnson}/" "${hedefUrtotmDizini}/"
     if [ ! $? ]; then
-        echo "Üretim otomasyonu dizini (.urtotm) $guncellenirkenHata"
+        echo "Üretim otomasyonu dizini (.urtotm) $guncellenirkenHataRsyncKod: $?"
         shift; continue
     fi
-
-    # Kancalara üretim otomasyonu config (urtotmenv) dosyasını source etme ifadesi ekle.
-    # Bu ifadeler dinamik olarak eklendiğinden, güncellemeden sonra yeniden eklenmelidir.
-    pushd "$gitKancalariDizini"
-    while read -r kanca; do
-        # source etkilesim ifadesinden önceki satıra ekle
-        sed -i -e "/^source etkilesim/ i\source \"${urtotmenv}\"\\" \
-            -e 'export urtotm_projeLogDosyasi="${urtotm_projeLogDizini}/${urtotm_projeLogDosyaOneki}-$(date +"%Y%m%d_%H%M%S")"\' \
-            -e 'source logcu "$urtotm_projeLogDosyasi"' "$kanca"
-    done < <(ls -I "*.sample")
-    popd
     shift # Bir sonraki argümanı (varsa) $1 konumuna getir
 done
 
