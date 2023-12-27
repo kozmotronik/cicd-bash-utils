@@ -58,7 +58,7 @@ log() {
     fi
 }
 
-goruntuBaslik="$dialogBaslik - Görüntü"
+goruntuBaslik="$urtotm_dialogBaslik - Görüntü"
 log
 log "Kaynak $urtotm_projeDizini, hedef $urtotm_yedekDizini"
 
