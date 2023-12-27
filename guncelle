@@ -4,7 +4,7 @@
 # $2+: Güncellenecek hedeflerin urtotmenv dosyaları
 
 source etkilesim
-guncelleBaslik="$urtotm_projeAdi - Güncelle"
+guncelleBaslik="$urtotm_dialogBaslik - Güncelle"
 
 urtotmEnson="$1"
 declare -a urtotmenvler # urtotmenv dosyalarını tutacak dizi
