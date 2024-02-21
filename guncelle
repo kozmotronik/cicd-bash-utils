@@ -76,4 +76,6 @@ while (( $# )); do
     shift # Bir sonraki argümanı (varsa) $1 konumuna getir
 done
 
-mesajGoster bilgi "$guncelleBaslik" "Üretim otomasyonu $urtotm_platform platformunun yeni sürümü\ngüncelleme listesindeki hedef projelere yüklendi." &
+# Yeni sürümü yayınlanan platformun adını al
+platform=$(awk -F'=' '/.*urtotm_platform/ { print $2 }' "$urtotmenv" | xargs);
+mesajGoster bilgi "$guncelleBaslik" "Üretim otomasyonu $platform platformunun yeni sürümü\ngüncelleme listesindeki hedef projelere yüklendi." &
