@@ -7,10 +7,9 @@ source etkilesim
 guncelleBaslik="$urtotm_dialogBaslik - Güncelle"
 
 urtotmEnson="$1"
-declare -a urtotmenvler # urtotmenv dosyalarını tutacak dizi
 
 if [[ ! -e "$urtotmEnson" && ! -d "$urtotmEnson" ]]; then
-    mesajGoster hata "$guncelleBaslik" "urtotm Güncelleme Başarısız!\nGeçersiz bir enson sürüm proje dizini: ["$urtotmEnson"]" &
+    mesajGoster hata "$guncelleBaslik" "urtotm Güncelleme Başarısız!\nGeçersiz bir enson sürüm proje dizini: [$urtotmEnson]" &
     exit 1
 fi
 
@@ -25,7 +24,7 @@ while (( $# )); do
     echo "Kalan: $#, Sıradaki hedef: $urtotmenv"
     # Varlık ve dosya kontrolü
     if [[ ! -e "$urtotmenv" || ! -f "$urtotmenv" ]]; then
-        echo "Geçersiz bir urtotmenv dosyası: ["$urtotmenv"]"
+        echo "Geçersiz bir urtotmenv dosyası: [$urtotmenv]"
         shift; continue
     fi
 
@@ -68,12 +67,13 @@ while (( $# )); do
         echo "urtotm Güncelleme Başarısız! Güncellenecek hedefin '.urtotm' dizini bulunamadı."
         shift; continue
     fi
-    rsync -qa --exclude=git-hooks "${urtotmEnson}/" "${hedefUrtotmDizini}/"
-    if [ ! $? ]; then
+    if ! rsync -qa --exclude=git-hooks "${urtotmEnson}/" "${hedefUrtotmDizini}/"; then
         echo "Üretim otomasyonu dizini (.urtotm) $guncellenirkenHataRsyncKod: $?"
         shift; continue
     fi
     shift # Bir sonraki argümanı (varsa) $1 konumuna getir
 done
 
-mesajGoster bilgi "$guncelleBaslik" "Üretim otomasyonu $urtotm_platform platformunun yeni sürümü\ngüncelleme listesindeki hedef projelere yüklendi." &
+# Yeni sürümü yayınlanan platformun adını al
+platform=$(awk -F'=' '/.*urtotm_platform/ { print $2 }' "$urtotmenv" | xargs);
+mesajGoster bilgi "$guncelleBaslik" "Üretim otomasyonu $platform platformunun yeni sürümü\ngüncelleme listesindeki hedef projelere yüklendi." &
