@@ -123,10 +123,10 @@ if [ $kip = "tarih" ]; then
 # Git etkin değilse yalnızca zaman damgasını kullan
     goruntuDiziniAdi="$urtotm_projeAdi-$surevDamgasi"
 elif [ $kip = "ref" ]; then
-    goruntuDiziniAdi="$urtotm_projeAdi-$gitRef-$surevDamgasi"
+    goruntuDiziniAdi="$urtotm_projeAdi-$surevDamgasi-$gitRef"
 else
 # Git etkinse adın sonuna sürüm + commit numarasını ekle
-    goruntuDiziniAdi="$urtotm_projeAdi-$gitTag-$gitRef-$surevDamgasi"
+    goruntuDiziniAdi="$urtotm_projeAdi-$surevDamgasi-$gitTag-$gitRef"
 fi
 
 log "Görüntü adı: $goruntuDiziniAdi"
