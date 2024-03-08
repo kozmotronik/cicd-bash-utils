@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # $1: Yeni sürümü çıkan urtotm platformunun enson sürüm dizini
 # $2+: Güncellenecek hedeflerin urtotmenv dosyaları
