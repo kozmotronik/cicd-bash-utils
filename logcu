@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 logDosyasi="$1"
-exec 3>&1 1>"$logDosyasi" 2>&1
-trap "echo 'HATA: Çalışma sırasında bir hata oluştu, ayrıntılar için $logDosyasi log dosyasına bakınız.' >&3" ERR
+if [[ -e "$logDosyasi" ]]; then
+    exec 3>&1 1>"$logDosyasi" 2>&1
+else
+    exec 3>&1 2>&1
+fi
+
+trap 'echo "${FUNCNAME-main} $LINENO. satırda [${BASH_COMMAND}] komutu ($?) kodu ile hata verdi." >&3' ERR
 trap '{ set +x; } 2>/dev/null; echo -n "[$(date -Is)]  "; set -x' DEBUG
