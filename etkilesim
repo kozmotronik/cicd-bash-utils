@@ -49,6 +49,15 @@ mesajGoster() {
                 # Editöre erişildikten sonra dosyayı sil
                 inotifywait -qqe access -t 30 "$dosya"
                 sleep 5
+            else
+                # En son seçenek olarak bir kabuk aracılığıyla göster
+                cat << EOF
+
+${1^^} MESAJI - $2
+
+$3
+
+EOF
             fi
         fi
         rm -f "$dosya"
@@ -78,6 +87,14 @@ yaziGoster() {
                 xterm -hold -e "cat $1" &
             elif command -v xdg-open &> /dev/null; then
                 xdg-open "$1" &> /dev/null
+            else
+                cat << EOF
+
+$baslik
+
+$(cat "$1")
+
+EOF
             fi
         fi
     fi
@@ -113,6 +130,15 @@ bildirimGoster() {
                 # Editöre erişildikten sonra dosyayı sil
                 inotifywait -qqe access -t 30 "$dosya"
                 sleep 5
+            else
+                # En son seçenek olarak bir kabuk aracılığıyla göster
+                cat << EOF
+
+BILDIRIM - $1
+
+$2
+
+EOF
             fi
         fi
         rm -f "$dosya"
@@ -180,8 +206,21 @@ SON
                 # Dosya değişimlerini izleyebilmek için terminalleri (& ile) asenkron çalıştır.
                 if [[ $terminal == gnome-terminal ]]; then
                     $terminal -- $editor "$dosya" &
-                else
+                elif [[ $terminal == konsole ]]; then
                     $terminal -e $editor "$dosya" &
+                else
+                    # En son çare kabuk ekranından hallet
+                    cat "$dosya"
+                    # 10sn boyunca yanıt bekle
+                    read -t 10 -p "Sistemde bir GUI bulunmadığından lütfen yanıtızı buradan girin: " ynt
+                    echo
+                    case $ynt in
+                        Evet|evet|E|e) ret=0 ;;
+                        Hayır|hayır|H|h) ret=1 ;;
+                        *) ret=2 ;;
+                    esac
+                    rm -f "$dosya"
+                    return $ret
                 fi
             fi
             # Değer girilip kaydedilmesini bekle ve ardından dosyayı sil
@@ -306,8 +345,17 @@ SON
             else
                 if [[ $terminal == gnome-terminal ]]; then
                     $terminal -- $editor "$dosya" &
-                else
+                elif [[ $terminal == konsole ]]; then
                     $terminal -e $editor "$dosya" &
+                else
+                    # En son çare kabuk ekranından hallet
+                    cat "$dosya"
+                    # 10sn boyunca yanıt bekle
+                    read -t 10 -p "Sistemde bir GUI bulunmadığından lütfen seçiminizi buradan girin: " secim
+                    echo
+                    echo $secim
+                    rm -f "$dosya"
+                    return
                 fi
                 dk=$?
             fi
@@ -380,8 +428,17 @@ SON
                 # Dosya değişimlerini izleyebilmek için terminalleri (& ile) asenkron çalıştır.
                 if [[ $terminal == gnome-terminal ]]; then
                     $terminal -- $editor "$dosya" &
-                else
+                elif [[ $terminal == konsole ]]; then
                     $terminal -e $editor "$dosya" &
+                else
+                   # En son çare kabuk ekranından hallet
+                    cat "$dosya"
+                    # 10sn boyunca yanıt bekle
+                    read -rt 30 -p "Sistemde bir GUI bulunmadığından lütfen dizini buradan girin: " dizin
+                    echo
+                    echo "$dizin"
+                    rm -f "$dosya"
+                    return
                 fi
                 dk=$?
             fi
@@ -461,8 +518,17 @@ SON
                 # Dosya değişimlerini izleyebilmek için terminalleri (& ile) asenkron çalıştır.
                 if [[ $terminal == gnome-terminal ]]; then
                     $terminal -- $editor "$dosya" &
-                else
+                elif [[ $terminal == konsole ]]; then
                     $terminal -e $editor "$dosya" &
+                else
+                    # En son çare kabuk ekranından hallet
+                    cat "$dosya"
+                    # 10sn boyunca yanıt bekle
+                    read -rt 20 -p "Sistemde bir GUI bulunmadığından lütfen metni buradan girin: " secim
+                    echo
+                    echo $secim
+                    rm -f "$dosya"
+                    return
                 fi
                 dk=$?
             fi

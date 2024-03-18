@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Etkileşim testleri
+# Çevre değişkenleri
+export PATH+=:/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar
+
+touch tmp.log
+source logcu tmp.log
+
+# Hatayı tetikle
+mkdir /abc/bca/ccc
+kotukomut
+kotukomut1
+
+# rm -f tmp.log
