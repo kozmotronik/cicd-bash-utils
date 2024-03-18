@@ -1,4 +1,6 @@
 # Test dosyaları haricindekileri görmezden gel
-/*
+/test/*
 !.gitignore
-!test-*
+!unit/test-etkilesim
+!unit/test-goruntu
+!unit/test-logcu
