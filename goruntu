@@ -41,12 +41,12 @@
 # çalıştırıldığı varsayılır.
 # 
 # Yedekler aşağıdaki dizin yapısı kullanılarak saklanır:
-# $urtotm_yedekDizini
+# $urtotm_projeYedeklemeDizini
 #   |--s[MAJOR_SURUM_NO]
 #       |--[TAM_SURUM_NO] (Başında v olmadan, yani vX.X.X yerine X.X.X)
 # 
 # urtotm_projeDizini: Proje dizininin yoludur. Çevre değişkenleri dosyasında tanımlanmıştır.
-# urtotm_yedekDizini: Yedeklerin saklanacağı ana dizinin yoludur.
+# urtotm_projeYedeklemeDizini: Yedeklerin saklanacağı ana dizinin yoludur.
 ################################################################################
 source etkilesim
 
@@ -60,15 +60,15 @@ log() {
 
 goruntuBaslik="$urtotm_dialogBaslik - Görüntü"
 log
-log "Kaynak $urtotm_projeDizini, hedef $urtotm_yedekDizini"
+log "Kaynak $urtotm_projeDizini, hedef $urtotm_projeYedeklemeDizini"
 
 if [ ! -d "$urtotm_projeDizini" ]; then
     log "Böyle bir dizin bulunmuyor: $urtotm_projeDizini! İşlem iptal edildi."
     exit 1
 fi
 
-if [ ! -d "$urtotm_yedekDizini" ]; then
-    log "Böyle bir dizin bulunmuyor: $urtotm_yedekDizini! İşlem iptal edildi."
+if [ ! -d "$urtotm_projeYedeklemeDizini" ]; then
+    log "Böyle bir dizin bulunmuyor: $urtotm_projeYedeklemeDizini! İşlem iptal edildi."
     exit 1
 fi
 
@@ -130,7 +130,7 @@ else
 fi
 
 log "Görüntü adı: $goruntuDiziniAdi"
-log "Hedef dizin: $urtotm_yedekDizini"
+log "Hedef dizin: $urtotm_projeYedeklemeDizini"
 
 # Hedef dizini içerisinde kapsayıcı major dizin ve/veya tam sürüm dizini yoksa oluştur
 # Sürüm formatının vX.X.X olduğu varsayılır.
@@ -145,7 +145,7 @@ if [ -z "$surum" ]; then
 # Henüz bir tag yok, 0 ile başla
     surum=0.0.0
 fi
-hedef="$urtotm_yedekDizini" # ATTENTION urtotm_yedekDizini bir çevre değişkenidir ve değiştirilmemelidir!
+hedef="$urtotm_projeYedeklemeDizini" # ATTENTION urtotm_projeYedeklemeDizini bir çevre değişkenidir ve değiştirilmemelidir!
 surumMajorDizinAdi="s$surumMajor"
 surumMajorDizini=$(find "$hedef" -name "$surumMajorDizinAdi" -type d)
 if [ -z "$surumMajorDizini" ]; then
