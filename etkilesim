@@ -3,7 +3,7 @@
 # Kullanılabilir terminal ve editörlerden birini al
 # terminal="${terminal##*/}" # basename alternatifi; yolu kaldır
 terminal=$(basename "$(command -v konsole gnome-terminal xterm | head -1)")
-# dialog=$(basename $(command -v dialog))
+shdialog=$(basename $(command -v dialog))
 guidialog=$(basename "$(command -v kdialog zenity | head -1)")
 editor=$(basename "$(command -v nano micro ne emacs vim tilde | head -1)")
 dosya="$(dirname "$0")/tmp.txt"
@@ -28,11 +28,11 @@ mesajGoster() {
         zenity $tip --text="$3" --title="$2"
     else
         baslik="$2 - ${1^}"
-        if [[ -n $dialog ]]; then
+        if [[ -n $shdialog ]]; then
             if [[ $terminal == gnome-terminal ]]; then
-                $terminal -- $dialog --title "$baslik" --msgbox "$3" 16 80
+                $terminal -- $shdialog --title "$baslik" --msgbox "$3" 16 80
             else
-                $terminal -e $dialog --title "$baslik" --msgbox "$3" 16 80
+                $terminal -e $shdialog --title "$baslik" --msgbox "$3" 16 80
             fi
         else
             if [[ $terminal == gnome-terminal ]]; then
@@ -72,11 +72,11 @@ yaziGoster() {
     elif [[ $guidialog == zenity ]]; then
         zenity --text-info --title="$baslik" --filename="$1"
     else
-        if [[ -n $dialog ]]; then
+        if [[ -n $shdialog ]]; then
             if [[ $terminal == gnome-terminal ]]; then
-                $terminal -- $dialog --title "$baslik" --textbox "$1" 800 600
+                $terminal -- $shdialog --title "$baslik" --textbox "$1" 800 600
             else
-                $terminal -e $dialog --title "$baslik" --textbox "$1" 800 600
+                $terminal -e $shdialog --title "$baslik" --textbox "$1" 800 600
             fi
         else
             if [[ $terminal == gnome-terminal ]]; then
@@ -109,11 +109,11 @@ bildirimGoster() {
         zenity --notification --text="$2" --title="$1"
     else
         baslik="$1 - ${1^}"
-        if [[ -n $dialog ]]; then
+        if [[ -n $shdialog ]]; then
             if [[ $terminal == gnome-terminal ]]; then
-                $terminal -- $dialog --title "$baslik" --msgbox "$2" 16 80
+                $terminal -- $shdialog --title "$baslik" --msgbox "$2" 16 80
             else
-                $terminal -e $dialog --title "$baslik" --msgbox "$2" 16 80
+                $terminal -e $shdialog --title "$baslik" --msgbox "$2" 16 80
             fi
         else
             if [[ $terminal == gnome-terminal ]]; then
@@ -159,12 +159,12 @@ evetHayirGoster() {
         ret=0
         touch "$dosya"
         # En son çare, terminal emülatörü
-        if [[ -n $dialog ]]; then
+        if [[ -n $shdialog ]]; then
         # FIXME şimdilik dialog iptal
         # TODO Whiptail bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
         # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
         # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $dialog"
+            echo "Dialog $shdialog"
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$2"; msg=()
@@ -292,7 +292,7 @@ secenekGoster() {
     else
         touch "$dosya"
         # En son çare, terminal emülatörü
-        if [[ -n $dialog ]]; then
+        if [[ -n $shdialog ]]; then
 #             for s in "${secenekler[@]}"; do
 #                 secenekler+=("$s" "")
 #             done
@@ -300,7 +300,7 @@ secenekGoster() {
         # TODO dialog bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
         # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
         # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $dialog"
+            echo "Dialog $shdialog"
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$aciklama"; msg=()
@@ -390,12 +390,12 @@ dizinSec() {
     else
         touch "$dosya"
         # En son çare, terminal emülatörü
-        if [[ -n $dialog ]]; then
+        if [[ -n $shdialog ]]; then
         # FIXME şimdilik dialog iptal
         # TODO Whiptail bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
         # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
         # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $dialog"
+            echo "Dialog $shdialog"
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$2"; msg=()
@@ -473,12 +473,12 @@ girdiAl() {
     else
         touch "$dosya"
         # En son çare, terminal emülatörü
-        if [[ -n $dialog ]]; then
+        if [[ -n $shdialog ]]; then
         # FIXME şimdilik dialog iptal
         # TODO Whiptail bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
         # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
         # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $dialog"
+            echo "Dialog $shdialog"
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$2"; msg=()
