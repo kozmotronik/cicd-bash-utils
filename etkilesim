@@ -1,101 +1,95 @@
 #!/usr/bin/env bash
 
-# Kullanılabilir terminal ve editörlerden birini al
-# terminal="${terminal##*/}" # basename alternatifi; yolu kaldır
-terminal=$(basename "$(command -v konsole gnome-terminal xterm | head -1)")
-shdialog=$(basename $(command -v dialog))
+clidialog=$(basename "$(command -v dialog)")
 guidialog=$(basename "$(command -v kdialog zenity | head -1)")
-editor=$(basename "$(command -v nano micro ne emacs vim tilde | head -1)")
-dosya="$(dirname "$0")/tmp.txt"
+clieditor=$(basename "$(command -v nano vi vim micro | head -1)")
+
+# Geçici dosyayı kur
+dosya=$((mktemp) 2>/dev/null) || dosya=/tmp/etkilesim$$
+trap "rm -f $dosya" 0 $SIG_NONE $SIG_HUP $SIG_INT $SIG_QUIT $SIG_TERM
+
 
 # $1 tür: bilgi, uyarı, hata.
 # $2 başlık: Mesaj başlığı.
 # $3 ileti: İleti.
 mesajGoster() {
-    if [[ $guidialog == kdialog ]]; then
-        case $1 in
-            bilgi) tip="--msgbox"  ;;
-            uyari) tip="--sorry" ;;
-            hata) tip="--error" ;;
-        esac
-        kdialog $tip "$3" --title="$2"
-    elif [[ $guidialog == zenity ]]; then
-        case $1 in
-            bilgi) tip="--info"  ;;
-            uyari) tip="--warning" ;;
-            hata) tip="--error" ;;
-        esac
-        zenity $tip --text="$3" --title="$2"
+    if [[ -n "$guidialog" ]]; then
+        if [[ $guidialog == kdialog ]]; then
+            case $1 in
+                bilgi) tip="--msgbox"  ;;
+                uyari) tip="--sorry" ;;
+                hata) tip="--error" ;;
+            esac
+            kdialog $tip "$3" --title="$2"
+        elif [[ $guidialog == zenity ]]; then
+            case $1 in
+                bilgi) tip="--info"  ;;
+                uyari) tip="--warning" ;;
+                hata) tip="--error" ;;
+            esac
+            zenity $tip --text="$3" --title="$2"
+        fi
     else
         baslik="$2 - ${1^}"
-        if [[ -n $shdialog ]]; then
-            if [[ $terminal == gnome-terminal ]]; then
-                $terminal -- $shdialog --title "$baslik" --msgbox "$3" 16 80
-            else
-                $terminal -e $shdialog --title "$baslik" --msgbox "$3" 16 80
-            fi
+        if [[ -n "$clidialog" ]]; then
+            # --keep-tite: dialog çıktısını alternatif ekranda göster
+            $clidialog --keep-tite --title "$baslik" --clear --msgbox "$3" 0 0
+        elif [[ -n "$clieditor" ]]; then
+            case $clieditor in
+                nano) ReadOnlyFlag=-v ;;
+                vi|vim) ReadOnlyFlag=-R ;;
+                micro) ReadOnlyFlag="-readonly true" ;;
+            esac
+            cat << EOF > "$dosya"
+            
+    $baslik
+
+    $3
+
+    Mesajı okuduktan sonra bu dosyayı kapatabilirsiniz...
+EOF
+            "$clieditor" $ReadOnlyFlag "$dosya"
+            rm -f "$dosya"
         else
-            if [[ $terminal == gnome-terminal ]]; then
-                gnome-terminal -- bash -c "echo -e '$baslik\n\n$3'; exec bash -i" &
-            elif [[ $terminal == konsole ]]; then
-                konsole --hold -e echo -e "$baslik\n\n$3" &
-            elif [[ $terminal == xterm ]]; then
-                xterm -hold -e echo -e "$baslik\n\n$3" &
-            elif command -v xdg-open &> /dev/null; then
-                "$(date)" > "$dosya"
-                echo -e "$baslik\n\n$3" >> "$dosya"
-                echo -e "\n\nMesajı okuduktan sonra bu dosyayı kapatabilirsiniz..."
-                xdg-open "$dosya" &> /dev/null
-                # Editöre erişildikten sonra dosyayı sil
-                inotifywait -qqe access -t 30 "$dosya"
-                sleep 5
-            else
-                # En son seçenek olarak bir kabuk aracılığıyla göster
-                cat << EOF
+            # En son seçenek olarak bir kabuk aracılığıyla göster
+            cat << EOF
 
-${1^^} MESAJI - $2
+    $baslik
 
-$3
+    $3
 
 EOF
-            fi
         fi
-        rm -f "$dosya"
     fi
 }
 
 # $1 dosya
 yaziGoster() {
     baslik="${1##*/}"
-    if [[ $guidialog == kdialog ]]; then
-        kdialog --textbox "$1" 800 600
-    elif [[ $guidialog == zenity ]]; then
-        zenity --text-info --title="$baslik" --filename="$1"
+    if [[ -n "$guidialog" ]]; then
+        if [[ $guidialog == kdialog ]]; then
+            kdialog --textbox "$1" 800 600
+        elif [[ $guidialog == zenity ]]; then
+            zenity --text-info --title="$baslik" --filename="$1"
+        fi
     else
-        if [[ -n $shdialog ]]; then
-            if [[ $terminal == gnome-terminal ]]; then
-                $terminal -- $shdialog --title "$baslik" --textbox "$1" 800 600
-            else
-                $terminal -e $shdialog --title "$baslik" --textbox "$1" 800 600
-            fi
+        if [[ -n $clidialog ]]; then
+            $clidialog --keep-tite --title "$baslik" --textbox "$1" 0 0
+        elif [[ -n "$clieditor" ]]; then
+            case $clieditor in
+                nano) ReadOnlyFlag=-v ;;
+                vi|vim) ReadOnlyFlag=-R ;;
+                micro) ReadOnlyFlag="-readonly true" ;;
+            esac
+            $clieditor $ReadOnlyFlag "$1"
         else
-            if [[ $terminal == gnome-terminal ]]; then
-                gnome-terminal -- bash -c "cat $1; exec bash -i" &
-            elif [[ $terminal == konsole ]]; then
-                konsole --hold -e "cat $1" &
-            elif [[ $terminal == xterm ]]; then
-                xterm -hold -e "cat $1" &
-            elif command -v xdg-open &> /dev/null; then
-                xdg-open "$1" &> /dev/null
-            else
-                cat << EOF
+            cat << EOF
 
 $baslik
 
 $(cat "$1")
 
 EOF
-            fi
         fi
     fi
 }
@@ -103,68 +97,100 @@ EOF
 # $1 başlık: Mesaj başlığı.
 # $2 ileti: İleti.
 bildirimGoster() {
-    if [[ $guidialog == kdialog ]]; then
-        kdialog --passivepopup "$2" --title="$1"
-    elif [[ $guidialog == zenity ]]; then
-        zenity --notification --text="$2" --title="$1"
+    if [[ -n "$guidialog" ]]; then
+        if [[ $guidialog == kdialog ]]; then
+            kdialog --passivepopup "$2" --title="$1"
+        elif [[ $guidialog == zenity ]]; then
+            zenity --notification --text="$2" --title="$1"
+        fi
     else
-        baslik="$1 - ${1^}"
-        if [[ -n $shdialog ]]; then
-            if [[ $terminal == gnome-terminal ]]; then
-                $terminal -- $shdialog --title "$baslik" --msgbox "$2" 16 80
+        baslik="Bildirim - $1"
+        if [[ -n $clidialog ]]; then
+            # Bekleme süresini hesapla
+            sayimBaslik=$(echo "$baslik" | wc -w)
+            sayimIleti=$(echo "$2" | wc -w)
+            sozcukSayimi=$((sayimBaslik + sayimIleti))
+            bekleme=$((sozcukSayimi * 200))
+            if ((bekleme >= 3000)); then
+                ((bekleme = bekleme / 1000))
             else
-                $terminal -e $shdialog --title "$baslik" --msgbox "$2" 16 80
+                bekleme=3
             fi
+            echo "Bekleme '$bekleme' sn"
+            $clidialog --title "$baslik" --infobox "$2" 0 0
+            # Hesaplanan süre kadar bekle ve ardından ekranı temizle
+            sleep $bekleme; clear
+        elif [[ -n "$clieditor" ]]; then
+            case $clieditor in
+                nano) ReadOnlyFlag=-v ;;
+                vi|vim) ReadOnlyFlag=-R ;;
+                micro) ReadOnlyFlag="-readonly true" ;;
+            esac
+            cat << EOF > "$dosya"
+    $baslik
+    
+    $2
+                
+    Bildirimi okuduktan sonra bu dosyayı kapatabilirsiniz...
+EOF
+            $clieditor $ReadOnlyFlag "$dosya"
+            rm -f "$dosya"
         else
-            if [[ $terminal == gnome-terminal ]]; then
-                gnome-terminal -- bash -c "echo -e '$baslik\n\n$2'; exec bash -i" &
-            elif [[ $terminal == konsole ]]; then
-                konsole --hold -e echo -e "$baslik\n\n$2" &
-            elif [[ $terminal == xterm ]]; then
-                xterm -hold -e echo -e "$baslik\n\n$2" &
-            elif command -v xdg-open &> /dev/null; then
-                "$(date)" > "$dosya"
-                echo -e "$baslik\n\n$2" >> "$dosya"
-                echo -e "\n\nBildirimi okuduktan sonra bu dosyayı kapatabilirsiniz..."
-                xdg-open "$dosya" &> /dev/null
-                # Editöre erişildikten sonra dosyayı sil
-                inotifywait -qqe access -t 30 "$dosya"
-                sleep 5
-            else
-                # En son seçenek olarak bir kabuk aracılığıyla göster
-                cat << EOF
+            # En son seçenek olarak bir kabuk aracılığıyla göster
+            cat << EOF
 
-BILDIRIM - $1
+    $baslik
 
-$2
+    $2
 
 EOF
-            fi
         fi
-        rm -f "$dosya"
     fi
 }
+
+
+# Dialog çıkış kodlarını tanımla
+: ${DIALOG_OK=0}
+: ${DIALOG_CANCEL=1}
+: ${DIALOG_HELP=2}
+: ${DIALOG_EXTRA=3}
+: ${DIALOG_ITEM_HELP=4}
+: ${DIALOG_TIMEOUT=5}
+: ${DIALOG_ESC=255}
 
 # Kullanılabilir UI etkileşim araçlarından birini kullanarak evet-hayır dialogu gösterir.
 # $1 başlık: evet-hayır dialogu başlığı.
 # $2 açıklama: evet-hayır dialogu için açıklama.
 evetHayirGoster() {
-    if [[ $guidialog == kdialog ]]; then
-        kdialog --title "$1" --yesno "$2"
-        return $?
-    elif [[ $guidialog == zenity ]]; then
-        zenity --title "$1" --question --text "$2"
-        return $?
+    if [[ -n "$guidialog" ]]; then
+        if [[ $guidialog == kdialog ]]; then
+            kdialog --title "$1" --yesno "$2"
+            return $?
+        elif [[ $guidialog == zenity ]]; then
+            zenity --title "$1" --question --text "$2"
+            return $?
+        fi
     else
-        ret=0
-        touch "$dosya"
-        # En son çare, terminal emülatörü
-        if [[ -n $shdialog ]]; then
-        # FIXME şimdilik dialog iptal
-        # TODO Whiptail bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
-        # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
-        # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $shdialog"
+        if [[ -n $clidialog ]]; then
+            # Dialog ui çıktısını stdout (fd 1) çıkışına verdiğinden sonucu 
+            # stderr (fd 2) çıkışına verir. Ancak yesno dialoğu yes için 0,
+            # no için de 1 döndürdüğü için ayrıca stderr okumaya gerek yok.
+            $clidialog --keep-tite --title "$1" --yesno "$2" 0 0
+            dk=$? # Dönüş kodunu al
+            
+            # Sonucu dönüş koduna göre değerlendir
+            case $dk in
+                $DIALOG_OK) return 0 ;;
+                $DIALOG_ESC)
+                    if test -s "$dosya"; then
+                        cat "$dosya"
+                        return 0
+                    else
+                        return 1
+                    fi
+                    ;;
+                *) return 1 ;;
+            esac
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$2"; msg=()
@@ -180,10 +206,9 @@ evetHayirGoster() {
             else
                 msg=("$tmp")
             fi
-            # Heredoc ile yaz; İçerik ve sonlama ilk sütundan başlar
-            # Sonlama ilk sütundan başlamazsa hata verir
-            cat <<- SON > "$dosya"
-
+            
+            if [[ -n "$clieditor" ]]; then
+                cat << SON > "$dosya"
 
 # Başlık
 #   $1
@@ -195,53 +220,39 @@ $(
     done
 )
 #
-# Yanıtınızı ilk satıra girip dosyayı kaydediniz.
 # Kabul edilebilir yanıtlar:
 #   - Evet, evet, E, e
 #   - Hayır, hayır, H, h
+# Yanıtınızı ilk satıra girip dosyayı kaydediniz.
 SON
-            if command -v xdg-open &> /dev/null; then
-                xdg-open "$dosya" &> /dev/null
+                $clieditor "$dosya"
+                ynt=$(head -1 "$dosya" | xargs)
             else
-                # Dosya değişimlerini izleyebilmek için terminalleri (& ile) asenkron çalıştır.
-                if [[ $terminal == gnome-terminal ]]; then
-                    $terminal -- $editor "$dosya" &
-                elif [[ $terminal == konsole ]]; then
-                    $terminal -e $editor "$dosya" &
-                else
-                    # En son çare kabuk ekranından hallet
-                    cat "$dosya"
-                    # 10sn boyunca yanıt bekle
-                    read -t 10 -p "Sistemde bir GUI bulunmadığından lütfen yanıtızı buradan girin: " ynt
-                    echo
-                    case $ynt in
-                        Evet|evet|E|e) ret=0 ;;
-                        Hayır|hayır|H|h) ret=1 ;;
-                        *) ret=2 ;;
-                    esac
-                    rm -f "$dosya"
-                    return $ret
-                fi
+                cat << SON
+# Başlık
+#   $1
+#
+# İleti
+$(
+    for m in "${msg[@]}"; do
+        echo -e "#\t$m"
+    done
+)
+#
+# Kabul edilebilir yanıtlar:
+#   - Evet, evet, E, e
+#   - Hayır, hayır, H, h
+
+SON
+                read -t 20 -p "Lütfen yanıtızı giriniz: " ynt
             fi
-            # Değer girilip kaydedilmesini bekle ve ardından dosyayı sil
-            # inotifywait stdo'ya hiçbir çıktı vermemesi için iki kez q bayrağını kullan
-            inotifywait -qqe close_write,delete -t 30 "$dosya"
-            case $? in
-                # Çalışırken bir hata veya bir şeyler inotify bekçisini durmaya zorladı
-                1) echo "evetHayirGoster: Değer girilmesini beklerken bir hata oluştu." >&2 return 1 ;;
-                # Timeout (zaman aşımı) oldu
-                2) echo "evetHayirGoster: Değer girilmesini beklerken zaman aşımı." >&2 return 1 ;;
-            esac
-            # İşlem başarılı, bilgileri dosyadan edin
-            deger=$(head -1 "$dosya" | xargs)
-            case $deger in
-                Evet|evet|E|e) ret=0 ;;
-                Hayır|hayır|H|h) ret=1 ;;
-                *) ret=2 ;;
+            
+            case $ynt in
+                Evet|evet|E|e) return 0 ;;
+                Hayır|hayır|H|h) return 1 ;;
+                *) return 2 ;;
             esac
         fi
-        rm -f "$dosya"
-        return $ret
     fi
 }
 
@@ -274,33 +285,56 @@ secenekGoster() {
         read -a secenekler <<< "$3"
     fi
     
-    if [[ $guidialog == kdialog ]]; then
-        secim=$(kdialog --combobox "$aciklama" --title "$baslik" "${secenekler[@]}" )
-        dk=$?
-        echo "$secim"; return $dk
-    elif [[ $guidialog == zenity ]]; then
-        zsecenekler="${secenekler[*]}"
-        zsecenekler="${zsecenekler//' '/'|'}"
-#         echo $zsecenekler
-        sentenceCase="${1,,}"
-        sentenceCase="${sentenceCase^}"
-        secim=$(zenity --forms --title "$baslik" --text "$sentenceCase" \
-            --add-combo "$aciklama" --combo-values="$zsecenekler" \
-        )
-        dk=$?
-        echo "$secim"; return $dk
+    if [[ -n "$guidialog" ]]; then
+        if [[ $guidialog == kdialog ]]; then
+            secim=$(kdialog --combobox "$aciklama" --title "$baslik" "${secenekler[@]}" )
+            dk=$?
+            echo "$secim"; return $dk
+        elif [[ $guidialog == zenity ]]; then
+            zsecenekler="${secenekler[*]}"
+            zsecenekler="${zsecenekler//' '/'|'}"
+            sentenceCase="${1,,}"
+            sentenceCase="${sentenceCase^}"
+            secim=$(zenity --forms --title "$baslik" --text "$sentenceCase" \
+                --add-combo "$aciklama" --combo-values="$zsecenekler" \
+            )
+            dk=$?
+            echo "$secim"; return $dk
+        fi
     else
-        touch "$dosya"
-        # En son çare, terminal emülatörü
-        if [[ -n $shdialog ]]; then
-#             for s in "${secenekler[@]}"; do
-#                 secenekler+=("$s" "")
-#             done
-        # FIXME şimdilik dialog iptal
-        # TODO dialog bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
-        # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
-        # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $shdialog"
+        if [[ -n $clidialog ]]; then
+            # Dialog ui çıktısını stdout (fd 1) çıkışına verdiğinden sonucu 
+            # stderr (fd 2) çıkışına verir. Bu yüzden sonucu buradan okumak için
+            # stderr'i geçici dosyaya yönlendireceğiz.
+            # 
+            # Önce değişkenleri hazırla ve seçenekleri yeniden biçimlendir.
+            aciklama+="${2}\n\nSeçmek için BOŞLUK tuşunu kullanın."
+            local shdialogSecenekler=()
+            for scnk in "${secenekler[@]}"; do
+                shdialogSecenekler+=("$scnk" "" OFF)
+            done
+            $clidialog --keep-tite --title "$1" \
+                --radiolist "$aciklama" 0 0 ${#secenekler[@]} \
+                "${shdialogSecenekler[@]}" \
+                2> "$dosya"
+            dk=$? # Dönüş kodunu al
+            
+            # Sonucu dönüş koduna göre değerlendir
+            case $dk in
+                $DIALOG_OK) 
+                    cat "$dosya" # Seçimi stdout'a yazdır
+                    return 0
+                    ;;
+                $DIALOG_ESC)
+                    if test -s "$dosya"; then
+                        cat "$dosya"
+                        return 0
+                    else
+                        return 1
+                    fi
+                    ;;
+                *) return 1 ;;
+            esac
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$aciklama"; msg=()
@@ -316,10 +350,9 @@ secenekGoster() {
             else
                 msg=("$tmp")
             fi
-            # Heredoc ile yaz; İçerik ve sonlama ilk sütundan başlar
-            # Sonlama ilk sütundan başlamazsa hata verir
-            cat <<- SON > "$dosya"
-
+            
+            if [[ -n "$clieditor" ]]; then
+                cat << SON > "$dosya"
 
 # Başlık            
 #   $baslik
@@ -331,47 +364,40 @@ $(
     done
 )
 #
-# Değeri ilk satıra girip dosyayı kaydediniz.
 # Kullanılabilir seçenekler:
 $(
     for s in "${!secenekler[@]}"; do
         echo -e "#\t- ${secenekler[$s]}"
     done
 )
+# Değeri ilk satıra girip dosyayı kaydediniz.
 SON
-            if command -v xdg-open &> /dev/null; then
-                xdg-open "$dosya" &> /dev/null
-                dk=$?
+                $clieditor "$dosya"
+                deger=$(head -1 "$dosya" | xargs)
             else
-                if [[ $terminal == gnome-terminal ]]; then
-                    $terminal -- $editor "$dosya" &
-                elif [[ $terminal == konsole ]]; then
-                    $terminal -e $editor "$dosya" &
-                else
-                    # En son çare kabuk ekranından hallet
-                    cat "$dosya"
-                    # 10sn boyunca yanıt bekle
-                    read -t 10 -p "Sistemde bir GUI bulunmadığından lütfen seçiminizi buradan girin: " secim
-                    echo
-                    echo $secim
-                    rm -f "$dosya"
-                    return
-                fi
-                dk=$?
+                cat << SON
+# Başlık            
+#   $baslik
+#
+# Açıklama
+$(
+    for m in "${msg[@]}"; do
+        echo -e "#\t$m"
+    done
+)
+#
+# Kullanılabilir seçenekler:
+$(
+    for s in "${!secenekler[@]}"; do
+        echo -e "#\t- ${secenekler[$s]}"
+    done
+)
+
+SON
+                read -t 60 -p "Lütfen yanıtızı giriniz: " deger
             fi
-            # Değer girilip kaydedilmesini bekle ve ardından dosyayı sil
-            inotifywait -qqe close_write,delete -t 30 "$dosya"
-            case $? in
-                # Çalışırken bir hata veya bir şeyler inotify bekçisini durmaya zorladı
-                1) echo "evetHayirGoster: Değer girilmesini beklerken bir hata oluştu." >&2 return 1 ;;
-                # Timeout (zaman aşımı) oldu
-                2) echo "evetHayirGoster: Değer girilmesini beklerken zaman aşımı." >&2 return 1 ;;
-            esac
-            # İşlem başarılı, bilgileri dosyadan edin
-            deger=$(head -1 "$dosya" | xargs)
             echo "$deger"
         fi
-        rm -f "$dosya"
     fi
 }
 
@@ -379,23 +405,41 @@ SON
 # Kullanılabilir UI etkileşim araçlarından birini kullanarak dizin seçimi dialogu gösterir.
 # $1 başlık: Dizin seçim dialogu başlığı.
 dizinSec() {
-    if [[ $guidialog == kdialog ]]; then
-        secim=$(kdialog --getexistingdirectory ~ "$1")
-        dk=$?
-        echo "$secim"; return $dk
-    elif [[ $guidialog == zenity ]]; then
-        secim=$(zenity --file-selection --directory --title "$1")
-        dk=$?
-        echo "$secim"; return $dk
+    if [[ -n "$guidialog" ]]; then
+        if [[ $guidialog == kdialog ]]; then
+            secim=$(kdialog --getexistingdirectory ~ "$1")
+            dk=$?
+            echo "$secim"; return $dk
+        elif [[ $guidialog == zenity ]]; then
+            secim=$(zenity --file-selection --directory --title "$1")
+            dk=$?
+            echo "$secim"; return $dk
+        fi
     else
-        touch "$dosya"
-        # En son çare, terminal emülatörü
-        if [[ -n $shdialog ]]; then
-        # FIXME şimdilik dialog iptal
-        # TODO Whiptail bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
-        # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
-        # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $shdialog"
+        if [[ -n $clidialog ]]; then
+            # Dialog ui çıktısını stdout (fd 1) çıkışına verdiğinden sonucu 
+            # stderr (fd 2) çıkışına verir. Bu yüzden sonucu stdout'a yönlendirmek
+            # için IO redirection numaraları yapacağız.
+            exec 3>&1 # File descriptor 3ü stdout'a kopyala
+            sonuc=$($clidialog --keep-tite --title "$1" --dselect "$HOME/" 0 0 2>&1 1>&3)
+            dk=$? # Dönüş kodunu al
+            exec 3>&- # File descriptor 3ü kapat
+            # Sonucu dönüş koduna göre değerlendir
+            case $dk in
+                $DIALOG_OK) 
+                    echo "$sonuc" # Seçimi stdout'a yazdır
+                    return 0
+                    ;;
+                $DIALOG_ESC)
+                    if test -n "$sonuc"; then
+                        echo "$sonuc"
+                        return 0
+                    else
+                        return 1
+                    fi
+                    ;;
+                *) return 1 ;;
+            esac
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$2"; msg=()
@@ -411,50 +455,27 @@ dizinSec() {
             else
                 msg=("$tmp")
             fi
-            # Heredoc ile yaz; İçerik ve sonlama ilk sütundan başlar
-            # Sonlama ilk sütundan başlamazsa hata verir
-            cat <<- SON > "$dosya"
-
+            
+            if [[ -n "$clieditor" ]]; then
+                cat <<- SON > "$dosya"
 
 # Başlık
 #   $1
 #
 # Seçmek istediğiniz dizinin tam yolunu ilk satıra girip dosyayı kaydediniz.
 SON
-            if command -v xdg-open &> /dev/null; then
-                xdg-open "$dosya" &> /dev/null
-                dk=$?
+                $clieditor "$dosya"
+                deger=$(head -1 "$dosya" | xargs)
             else
-                # Dosya değişimlerini izleyebilmek için terminalleri (& ile) asenkron çalıştır.
-                if [[ $terminal == gnome-terminal ]]; then
-                    $terminal -- $editor "$dosya" &
-                elif [[ $terminal == konsole ]]; then
-                    $terminal -e $editor "$dosya" &
-                else
-                   # En son çare kabuk ekranından hallet
-                    cat "$dosya"
-                    # 10sn boyunca yanıt bekle
-                    read -rt 30 -p "Sistemde bir GUI bulunmadığından lütfen dizini buradan girin: " dizin
-                    echo
-                    echo "$dizin"
-                    rm -f "$dosya"
-                    return
-                fi
-                dk=$?
+                cat <<- SON > "$dosya"
+# Başlık
+#   $1
+
+SON
+                read -t 120 -p "Seçmek istediğiniz dizinin tam yolunu giriniz: " deger
             fi
-            # Değer girilip kaydedilmesini bekle ve ardından dosyayı sil
-            inotifywait -qqe close_write,delete -t 30 "$dosya"
-            case $? in
-                # Çalışırken bir hata veya bir şeyler inotify bekçisini durmaya zorladı
-                1) echo "evetHayirGoster: Değer girilmesini beklerken bir hata oluştu." >&2 return 1 ;;
-                # Timeout (zaman aşımı) oldu
-                2) echo "evetHayirGoster: Değer girilmesini beklerken zaman aşımı." >&2 return 1 ;;
-            esac
-            # İşlem başarılı, bilgileri dosyadan edin
-            deger=$(head -1 "$dosya" | xargs)
             echo "$deger"
         fi
-        rm -f "$dosya"
     fi
 }
 
@@ -462,23 +483,40 @@ SON
 # $1 başlık: Metin girdisi dialogu başlığı.
 # $2 açıklama: Metin girdisi için açıklama.
 girdiAl() {
-    if [[ $guidialog == kdialog ]]; then
-        secim=$(kdialog --inputbox "$2" --title "$1")
-        dk=$?
-        echo "$secim"; return $dk
-    elif [[ $guidialog == zenity ]]; then
-        secim=$(zenity --title "$1" --entry --text "$2")
-        dk=$?
-        echo "$secim"; return $dk
+    if [[ -n "$guidialog" ]]; then
+        if [[ $guidialog == kdialog ]]; then
+            secim=$(kdialog --inputbox "$2" --title "$1")
+            dk=$?
+            echo "$secim"; return $dk
+        elif [[ $guidialog == zenity ]]; then
+            secim=$(zenity --title "$1" --entry --text "$2")
+            dk=$?
+            echo "$secim"; return $dk
+        fi
     else
-        touch "$dosya"
-        # En son çare, terminal emülatörü
-        if [[ -n $shdialog ]]; then
-        # FIXME şimdilik dialog iptal
-        # TODO Whiptail bir terminale ihtiyaç duyduğundan onu yeni bir terminal oturumunda 
-        # çalıştırmak gerekli. Aşağıdaki betiklerde çalıştırma başarılı oluyor ancak seçimi 
-        # bir türlü dosyaya yazdıramadım. Bir çare bulana dek terminal dialog iptal.
-            echo "Dialog $shdialog"
+        if [[ -n $clidialog ]]; then
+            # Dialog ui çıktısını stdout (fd 1) çıkışına verdiğinden sonucu 
+            # stderr (fd 2) çıkışına verir. Bu yüzden sonucu buradan okumak için
+            # stderr'i geçici dosyaya yönlendireceğiz.
+            $clidialog --keep-tite --title "$1" --inputbox "$2" 0 0 2> "$dosya"
+            dk=$? # Dönüş kodunu al
+            
+            # Sonucu dönüş koduna göre değerlendir
+            case $dk in
+                $DIALOG_OK) 
+                    cat "$dosya" # Seçimi stdout'a yazdır
+                    return 0
+                    ;;
+                $DIALOG_ESC)
+                    if test -s "$dosya"; then
+                        cat "$dosya"
+                        return 0
+                    else
+                        return 1
+                    fi
+                    ;;
+                *) return 1 ;;
+            esac
         else
             # Kaçış karakterlerini yorumla; stringi \n'den ayırarak diziye çevir
             tmp="$2"; msg=()
@@ -494,10 +532,9 @@ girdiAl() {
             else
                 msg=("$tmp")
             fi
-            # Heredoc ile yaz; İçerik ve sonlama ilk sütundan başlar
-            # Sonlama ilk sütundan başlamazsa hata verir
-            cat <<- SON > "$dosya"
 
+            if [[ -n "$clieditor" ]]; then
+                cat << SON > "$dosya"
 
 # Başlık
 #   $1
@@ -511,40 +548,25 @@ $(
 #
 # Değeri ilk satıra girip dosyayı kaydediniz.
 SON
-            if command -v xdg-open &> /dev/null; then
-                xdg-open "$dosya" &> /dev/null
-                dk=$?
+                $clieditor "$dosya"
+                deger=$(head -1 "$dosya" | xargs)
             else
-                # Dosya değişimlerini izleyebilmek için terminalleri (& ile) asenkron çalıştır.
-                if [[ $terminal == gnome-terminal ]]; then
-                    $terminal -- $editor "$dosya" &
-                elif [[ $terminal == konsole ]]; then
-                    $terminal -e $editor "$dosya" &
-                else
-                    # En son çare kabuk ekranından hallet
-                    cat "$dosya"
-                    # 10sn boyunca yanıt bekle
-                    read -rt 20 -p "Sistemde bir GUI bulunmadığından lütfen metni buradan girin: " secim
-                    echo
-                    echo $secim
-                    rm -f "$dosya"
-                    return
-                fi
-                dk=$?
+                cat << SON
+
+# Başlık
+#   $1
+#
+# İleti
+$(
+    for m in "${msg[@]}"; do
+        echo -e "#\t$m"
+    done
+)
+SON
+                read -t 60 -p "Lütfen yanıtızı giriniz: " deger
             fi
-            # Değer girilip kaydedilmesini bekle ve ardından dosyayı sil
-            inotifywait -qqe close_write,delete -t 30 "$dosya"
-            case $? in
-                # Çalışırken bir hata veya bir şeyler inotify bekçisini durmaya zorladı
-                1) echo "evetHayirGoster: Değer girilmesini beklerken bir hata oluştu." >&2 return 1 ;;
-                # Timeout (zaman aşımı) oldu
-                2) echo "evetHayirGoster: Değer girilmesini beklerken zaman aşımı." >&2 return 1 ;;
-            esac
-            # İşlem başarılı, bilgileri dosyadan edin
-            deger=$(head -1 "$dosya" | xargs)
             echo "$deger"
         fi
-        rm -f "$dosya"
     fi
 }
 
