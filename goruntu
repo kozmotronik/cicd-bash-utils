@@ -232,13 +232,14 @@ if ! zip -qmr "${projeGoruntuArsivi##*/}" "${hedefGoruntuDizini##*/}"; then
 fi
 popd
 
-# Diğer üretim otomasyonu betiklerine görünür yap
+# ATTENTION Yalnızca TAG kipinde diğer üretim otomasyonu betiklerine görünür yap
 # Değişken buradan export yapılarak parent kabuklara görünür yapılamaz. Bu yüzden ortam 
 # değişkenlerinin tanımlandığı dosyada export edilir. Bu işlemden sonra, bu değişkenin 
 # parent ve child, tüm betiklere görünür olması için bu betiği çağıran parent tarafından 
 # 'urtotm_projeUrtotmenv' yeniden source edilmelidir.
-echo "urtotm_projeUrtotmenv yolu: $urtotm_projeUrtotmenv"
-echo "export projeGoruntuArsivi=$projeGoruntuArsivi" >> "$urtotm_projeUrtotmenv"
+if [[ "$kip" == tag && -f "$urtotm_projeUrtotmenv" ]]; then
+    echo "export projeGoruntuArsivi=$projeGoruntuArsivi" >> "$urtotm_projeUrtotmenv"
+fi
 
 msgBasarili="Görüntü yedeği alma işlemi başarıyla tamamlandı."
 log "$msgBasarili"
