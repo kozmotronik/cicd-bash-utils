@@ -4,12 +4,19 @@
 # Çevre değişkenleri
 export PATH+=:/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar
 
-touch tmp.log
-source logcu tmp.log
+# Geçici dosyayı kur
+dosya=$((mktemp) 2>/dev/null) || dosya=/tmp/logcu$$
+trap "rm -f $dosya" 0 # $SIG_NONE $SIG_HUP $SIG_INT $SIG_QUIT $SIG_TERM
+echo "Log dosyası: '$dosya'"
+source logcu "$dosya"
 
 # Hatayı tetikle
-mkdir /abc/bca/ccc
+echo "Logcu test ediliyor......$(date)"
+mkdir ~/abc/bca/ccc
 kotukomut
 kotukomut1
 
-# rm -f tmp.log
+exec &>/dev/tty # Çıkışları yeniden terminale yönlendir
+echo "Log dosyası içeriği:"
+echo "--------------------"
+cat "$dosya"
