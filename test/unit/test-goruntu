@@ -1,20 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Görüntü için birim testi
-# Çevre değişkenleri
-export PATH="$PATH:/disk/Projeler/UretimOtomasyonu/Bash/UretimOtomasyonu/araclar"
-export urtotm_projeCiktiDizini="/disk/Projeler/UretimOtomasyonu/Bash/UretimOtomasyonu/araclar/test/unit/test-proje"
-export urtotm_projeDizini="/disk/Projeler/UretimOtomasyonu/Bash/UretimOtomasyonu/araclar/test/unit/test-proje/goruntu-projesi"
-export urtotm_projeYedeklemeDizini="/disk/Projeler/UretimOtomasyonu/Bash/UretimOtomasyonu/araclar/test/unit/test-proje/yedekler"
-export urtotm_projeAdi="Goruntu-Projesi" # Kurulum sırasında istenecek, boşluklar tirelerle değiştirilecek
-export urtotm_dialogBaslik="${urtotm_projeAdi} - urtotm"
-export urtotm_projeUrtotmDizini="/disk/Projeler/UretimOtomasyonu/Bash/UretimOtomasyonu/araclar/test/unit/test-proje/.urtotm"
-
+test -f test_ilkle && source $_
 
 # source etkilesim
 # echo "PATH $PATH"
 # echo "PWD $PWD"
 # mesajGoster bilgi "Yayınla Test" "Test başlıyor..."
-# goruntu
-# goruntu post-commit
+goruntu
+goruntu post-commit
 goruntu post-merge

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# Araçlar entegrasyon ve birim testleri için çevre değişkenleri
+# 
+# Araçların yayınlanan dosyaları ~/.local/bin dizininde ve bu dizinin PATH
+# değişkeninde olması geliştirme dizinindeki araç betiklerini test etmemizi
+# engelliyor. Bunu önlemek için ya ~/.local/bin dizinini PATH değişkeninden
+# çıkarıp araclar proje dizinini PATH değişkeninin sonuna ekleyeceğiz ya da
+# araçlar proje dizinini PATH değişkeninin en başına eklyeceğiz.
+# En temizi ve pratiği 2. seçenek.
+
+# SEÇENEK 1 ~/.local/bin dizinini PATH'tan çıkar
+# localbin=~/.local/bin
+# PATH=:$PATH:
+# PATH=${PATH//:$localbin:}
+# export PATH="${PATH}:/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar"
+
+# SEÇENEK 2 Araçlar
+export PATH="/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar:${PATH}"
+
+export urtotm_projeCiktiDizini="/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar/test/integration/test-proje"
+export urtotm_projeDizini="/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar/test/integration/test-proje/araclar_test_projesi"
+export urtotm_projeYedeklemeDizini="/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar/test/integration/test-proje/yedekler"
+export urtotm_projeAdi="Araclar Test Projesi" # Boşluklar tirelerle değiştirilecek
+export urtotm_dialogBaslik="${urtotm_projeAdi} - urtotm"
+export urtotm_projeUrtotmDizini="/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar/test/integration/test-proje/.urtotm"
+export urtotm_projeUrtotmenv="/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar/test/integration/test-proje/.urtotm/urtotmenv"

@@ -1,5 +1,6 @@
 # Test dosyaları haricindekileri görmezden gel
 /test/*
+test-proje
 !.gitignore
 !unit/test-etkilesim
 !unit/test-goruntu
