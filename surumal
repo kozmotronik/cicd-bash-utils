@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+#
+# Dosya: surumal
+#
+# Bir git reposu için kullanıcıdan sürüm bilgilerini alır.
+#
+# Bir git reposunda main (üretim) dalına her birleştirme yeni bir sürüm
+# olarak değerlendirilir. Bu işlem post-merge git kancasında saptanır.
+# post-merge kancası main dalına birleştirme saptadığında yeni sürüm
+# bilgilerini kullanıcıdan almak için bu betiği çağırır.
+#
+# Bu betik kullanıcıdan yeni bir tag ve bu tag için bir mesaj girmesini ister.
+# Tag girmek zorunluyken, tag için mesaj seçenekseldir dolayısıyla boş
+# bırakılabilir. Girilen bilgiler geçerlilik bakımından yoklandıktan sonra;
+# varsa 1. parametrede verilen dosyaya yoksa stdout'a virgül ile ayrılmış
+# biçimde çıktılanır: [yeni sürüm],[mesaj]
+
+source etkilesim
+
+cikis="$1"
+if [[ -z "$cikis" || ! -e "$cikis" || ! -f "$cikis" ]]; then
+    cikis=/dev/fd/1
+fi
+
+deneme=3
+# Tag bilgileri tam ve düzgün girilene dek 3 defaya dek yeniden iste
+while ((deneme--)); do
+    if ! girdiAl "$postmergeBaslik" \
+        "Sürüm numarası giriniz (zorunlu).\nSürüm formatı: vX.Y.Z, X: Major, Y: Minor, Z: Yama."; then
+        # Kullanıcı tarafından iptal edildi veya başka bir hata
+        exit 1
+    fi
+    read -u 4 surum
+    # Girilen sürüm biçimini yokla; format vX.Y.Z, X: Major, Y: Minor, Z: Yama
+    [[ "$surum" =~ ^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+ ]]
+    if [[ -n ${BASH_REMATCH[0]} ]]; then
+        # Girilen sürümün zaten önceden girilmiş olmadığını doğrula
+        if git tag | grep -E "$surum" &> /dev/null; then
+            continue
+        fi
+    fi
+    girdiAl "$postmergeBaslik" "Yeni sürüm numarası için bir mesaj giriniz (seçeneksel)."
+    read -u 4 mesaj
+    if [[ -z "$mesaj" ]]; then
+        mesaj="$surum sürümüne yükselt."
+    fi
+    break
+done
+
+if ((deneme <= 0)); then
+    exit 1
+fi
+echo "$surum,$mesaj" >"$cikis"
