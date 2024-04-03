@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
 logDosyasi="$1"
-exec 3>&1 1>"$logDosyasi" 2>&1
+
+# log dosyasının dizin zincirinin varlığını yokla
+logDizini="${logDosyasi%/*}"
+echo "log dizini: $logDizini"
+if [[ ! -e "$logDizini" || ! -d "$logDizini" ]]; then
+    if mkdir -p "$logDizini"; then
+        # log dizini yoktu, başarıyla oluşturuldu dosya ile devam et
+        exec 3>&1 1>"$logDosyasi" 2>&1
+    else
+        # log dizini zinciri oluşturulamadı dosyasız standart çıkışlar ile devam et
+        exec 3>&1 2>&1
+    fi
+else
+    # log dizini zaten var normal IO yönlendirmelerini yap
+    exec 3>&1 1>"$logDosyasi" 2>&1
+fi
+
 trap 'echo "${FUNCNAME-main} $LINENO. satırda [${BASH_COMMAND}] komutu ($?) kodu ile hata verdi." >&3' ERR
 trap '{ set +x; } 2>/dev/null; echo -n "[$(date -Is)]  "; set -x' DEBUG
