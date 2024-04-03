@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# Dosya: test_surumal
+
+tmpout=$(mktemp) || tmpout=/tmp/tmp.$$ # Geçici bir dosya adı al
+trap "rm -f $tmpout" 0 $SIG_NONE $SIG_HUP $SIG_INT $SIG_QUIT $SIG_TERM
+
+# surumal betiğinin yolunu path'a ekle
+PATH="/disk/Projeler/UretimOtomasyonu/Bash/araclar/araclar":$PATH
+
+girdi="boş girdi"
+
+if ! surumal; then
+    echo "Kullanıcı tarafından iptal edildi veya başka bir hata."
+    exit 1
+fi
+# head -1 "$tmpout"
+girdi="$(head -1 "$tmpout")" # surumal girdileri [sürüm],[sürüm mesajı] biçiminde
+echo "girdi: $girdi"
+surum=$(echo "$girdi" | awk -F, '{print $1}')
+echo "Sürümü aldıktan sonra girdi: $girdi"
+mesaj=$(echo "$girdi" | awk -F, '{print $2}')
+echo "sürüm: $surum"
+echo "mesaj: $mesaj"
